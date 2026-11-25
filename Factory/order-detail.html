@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Order detail · Production Tower</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F4F4F2}
+a{color:#2459D6}a:hover{color:#1A43A6}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="dc-lite.js"></script>
+<script>
+
+class Component extends DCLogic {
+  renderVals() {
+    var navItems = [
+      ['Plant overview','index.html'],['Orders','orders.html'],['Process board','process-board.html'],['Shop floor','shop-floor.html'],
+      ['Quality & wastage','quality.html'],['Capacity & resources','capacity.html'],['Data sources','data-sources.html']
+    ];
+    var nav = navItems.map(function (n) {
+      var on = n[0] === 'Orders';
+      return { label: n[0], href: n[1], style: 'display:flex;align-items:center;min-height:44px;padding:0 12px;border-radius:6px;text-decoration:none;font-size:14px;' + (on ? 'background:#1C1C1A;color:#FFFFFF;font-weight:600' : 'color:#3A3A37') };
+    });
+    var sc = { Done: '#2F7D4F', 'In progress': '#2459D6', 'On hold': '#B42318', 'Not started': '#6B6B66' };
+    var stages = [
+      [1,'Cutting','Done','','100%','2,400','0','1.2%','2.4 t MS plate issued','2,400 to Machining','No challenge reported'],
+      [2,'Machining','On hold','Blocked','58%','1,392','260','2.9%','2,400 from Cutting','1,180 to Welding · last 120 sent, 118 accepted','CNC-03 overheat, back by 19:00. Shift C requested (18:05)'],
+      [3,'Welding','In progress','At risk','49%','1,180','140','3.4%','1,178 accepted','1,130 to Fabrication','Porosity rework; wire batch changed (17:58)'],
+      [4,'Fabrication','In progress','','47%','1,130','80','0.6%','1,130 accepted','1,104 to Painting','Idle risk tomorrow if Welding lags (17:40)'],
+      [5,'Painting','In progress','','46%','1,104','40','0.4%','1,104 accepted','1,104 to Quality check','Shift update pending (due 18:30)'],
+      [6,'Quality check','In progress','','46%','1,104','20','—','1,104 accepted','1,104 passed','No challenge reported'],
+      [7,'Dispatch','Not started','','0%','0','—','—','—','—','Waiting for first lot']
+    ].map(function (s) { return { n: s[0], name: s[1], state: s[2], flag: s[3], hasFlag: !!s[3], pct: s[4], done: s[5], wip: s[6], scrap: s[7], inQ: s[8], outQ: s[9], note: s[10], noteBg: s[3] ? '#FDF0E1' : '#F4F4F2', color: sc[s[2]] }; });
+    var good = [70,64,58,66,0,62,48,60,55,52];
+    var scrap = [3,4,6,2,0,3,5,4,3,4];
+    var days = good.map(function (g, i) { return { good: g + '%', scrap: scrap[i] + '%' }; });
+    var defects = [['Dimension out of tolerance','38 u',100],['Weld porosity','26 u',68],['Surface dent / scratch','14 u',37],['Material crack','8 u',21]]
+      .map(function (d) { return { name: d[0], qty: d[1], bar: d[2] + '%' }; });
+    return {
+      nav: nav,
+      kpis: [
+        { label: 'Ordered', value: '2,400', sub: 'units' },
+        { label: 'Good produced', value: '1,104', sub: '46% complete' },
+        { label: 'Scrapped', value: '86', sub: '3.4% of input' },
+        { label: 'Rework', value: '42', sub: '1.7%' },
+        { label: 'Behind plan', value: '1,120 u', sub: 'vs plan to date' },
+        { label: 'Forecast ETA', value: '[29 Nov]', sub: 'Due [22 Nov]' },
+        { label: 'Extra hours needed', value: '56 h', sub: 'Machining 40 · Welding 16' }
+      ],
+      stages: stages,
+      days: days,
+      levers: [
+        { what: 'Overtime on Machining (2 operators)', need: '+40 h' },
+        { what: 'Overtime on Welding (1 welder)', need: '+16 h' },
+        { what: 'Restore CNC-03 (maintenance)', need: 'Today' },
+        { what: 'MS plate 6 mm to procure', need: '1.5 t' }
+      ],
+      defects: defects,
+      feed: [
+        { time: '18:20', text: 'Handoff Machining → Welding: 120 sent, 118 accepted · 2 pcs gap flagged', src: 'Handoff' },
+        { time: '18:05', text: 'Machining shift update: CNC-03 back by 19:00 · requests Shift C (4 operators) to recover this order', src: 'Dept head' },
+        { time: '17:58', text: 'Welding shift update: porosity traced to new wire batch, switched back at 17:30', src: 'Dept head' },
+        { time: '17:42', text: 'CNC-03 stopped — spindle temperature 92 °C', src: 'IoT' },
+        { time: '16:10', text: 'Machining confirmed 84 units, 3 scrap', src: 'SAP PP' },
+        { time: '15:05', text: 'QM notification: weld porosity, 6 units', src: 'SAP QM' },
+        { time: '14:00', text: 'Shift B started · 2 welders absent', src: 'HR' },
+        { time: '11:20', text: 'Goods issue: MS plate 0.8 t to Cutting', src: 'SAP MM' }
+      ]
+    };
+  }
+}
+
+dcMount("<div style=\"box-sizing: border-box; min-height: 1520px; display: flex; flex-wrap: wrap; align-items: stretch; background: #F4F4F2; font-family: Inter, system-ui, sans-serif; color: #1C1C1A\">\n\n  <nav aria-label=\"Main\" style=\"flex: 1 1 220px; box-sizing: border-box; background: #FFFFFF; border-right: 1px solid #D4D4D0; padding: 24px 16px; display: flex; flex-direction: column; gap: 4px\">\n    <div style=\"display: flex; align-items: center; gap: 10px; padding: 0 8px 20px\">\n      <div style=\"width: 32px; height: 32px; border-radius: 6px; background: #E4E4E0; border: 1px dashed #8A8A85; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #5E5E5A\">LOGO<\/div>\n      <div style=\"display: flex; flex-direction: column; gap: 2px\">\n        <div style=\"font-weight: 700; font-size: 15px\">Production Tower<\/div>\n        <div style=\"font-size: 11px; color: #5E5E5A\">Powered by itTrident<\/div>\n      <\/div>\n    <\/div>\n    <sc-for list=\"{{nav}}\" as=\"item\" hint-placeholder-count=\"6\">\n      <a href=\"{{item.href}}\" style=\"{{item.style}}\">{{item.label}}<\/a>\n    <\/sc-for>\n  <\/nav>\n\n  <main style=\"flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 28px 32px; display: flex; flex-direction: column; gap: 20px\">\n\n    <div style=\"font-size: 13px; color: #5E5E5A\"><a href=\"orders.html\">Orders<\/a> / SO-[1042]<\/div>\n    <header style=\"display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 16px\">\n      <div style=\"display: flex; flex-direction: column; gap: 6px\">\n        <div style=\"display: flex; align-items: center; gap: 12px; flex-wrap: wrap\">\n          <h1 style=\"margin: 0; font-size: 28px; font-weight: 700\">SO-[1042] · [Bracket assy BX-20]<\/h1>\n          <span style=\"font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px; background: #FBE9E7; color: #A12A1C\">Behind · 7 days late<\/span>\n        <\/div>\n        <div style=\"font-size: 13px; color: #5E5E5A\">[Client A] · PO [REF] · Prod. orders [1000231–1000234] · Due [22 Nov] · Forecast [29 Nov]<\/div>\n      <\/div>\n      <div style=\"display: flex; gap: 8px; flex-wrap: wrap\">\n        <button style=\"height: 44px; padding: 0 16px; border-radius: 6px; border: 1px solid #C4C4BF; background: #fff; font: inherit; font-size: 13px\">Open in SAP<\/button>\n        <button style=\"height: 44px; padding: 0 16px; border-radius: 6px; border: 1px solid #C4C4BF; background: #fff; font: inherit; font-size: 13px\">Notify client<\/button>\n        <a href=\"capacity.html\" style=\"display: inline-flex; align-items: center; height: 44px; padding: 0 16px; border-radius: 6px; background: #2459D6; color: #fff; font-size: 13px; font-weight: 600; text-decoration: none\">Plan recovery<\/a>\n      <\/div>\n    <\/header>\n\n    <section aria-label=\"Order metrics\" style=\"display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px\">\n      <sc-for list=\"{{kpis}}\" as=\"k\" hint-placeholder-count=\"7\">\n        <div style=\"background: #fff; border: 1px solid #D4D4D0; border-radius: 8px; padding: 14px; display: flex; flex-direction: column; gap: 4px\">\n          <div style=\"font-size: 12px; color: #5E5E5A\">{{k.label}}<\/div>\n          <div style=\"font-size: 22px; font-weight: 700\">{{k.value}}<\/div>\n          <div style=\"font-size: 12px; color: #5E5E5A\">{{k.sub}}<\/div>\n        <\/div>\n      <\/sc-for>\n    <\/section>\n\n    <section style=\"background: #fff; border: 1px solid #D4D4D0; border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 14px\">\n      <div style=\"display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px\">\n        <h2 style=\"margin: 0; font-size: 16px\">Journey through departments<\/h2>\n        <a href=\"process-board.html\" style=\"font-size: 13px\">Process board →<\/a>\n      <\/div>\n      <div style=\"display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px\">\n        <sc-for list=\"{{stages}}\" as=\"s\" hint-placeholder-count=\"7\">\n          <div style=\"flex: 1 0 170px; border: 1px solid #D4D4D0; border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 6px; border-top: 4px solid {{s.color}}\">\n            <div style=\"font-size: 11px; color: #6B6B66\">Step {{s.n}}<\/div>\n            <div style=\"font-size: 14px; font-weight: 600\">{{s.name}}<\/div>\n            <div style=\"display: flex; flex-wrap: wrap; gap: 4px; align-items: center\">\n              <span style=\"font-size: 12px; font-weight: 600; color: {{s.color}}\">{{s.state}}<\/span>\n              <sc-if value=\"{{s.hasFlag}}\" hint-placeholder-val=\"{{ false }}\"><span style=\"font-size: 11px; font-weight: 600; padding: 2px 6px; border-radius: 999px; background: #FDF0E1; color: #97470A\">{{s.flag}}<\/span><\/sc-if>\n            <\/div>\n            <div style=\"height: 6px; background: #ECECE8; border-radius: 3px\"><div style=\"height: 6px; border-radius: 3px; background: {{s.color}}; width: {{s.pct}}\"><\/div><\/div>\n            <div style=\"font-size: 12px; color: #5E5E5A\">{{s.done}} done · {{s.wip}} waiting · scrap {{s.scrap}}<\/div>\n            <div style=\"font-size: 12px; color: #3A3A37; border-top: 1px dashed #D4D4D0; padding-top: 6px\">In: {{s.inQ}}<\/div>\n            <div style=\"font-size: 12px; color: #3A3A37\">Out: {{s.outQ}}<\/div>\n            <div style=\"font-size: 12px; color: #3A3A37; background: {{s.noteBg}}; border-radius: 4px; padding: 6px; line-height: 1.4\">{{s.note}}<\/div>\n          <\/div>\n        <\/sc-for>\n      <\/div>\n      <div style=\"font-size: 11px; color: #6B6B66\">Progress: SAP PP confirmations + IoT counters · In/Out: department handoffs (sent / accepted) · Notes: department head shift updates<\/div>\n    <\/section>\n\n    <div style=\"display: flex; flex-wrap: wrap; gap: 16px\">\n      <section style=\"flex: 2 1 520px; min-width: 0; background: #fff; border: 1px solid #D4D4D0; border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 12px\">\n        <div style=\"display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px\">\n          <h2 style=\"margin: 0; font-size: 16px\">Daily productivity vs required rate<\/h2>\n          <div style=\"display: flex; gap: 14px; font-size: 12px; color: #5E5E5A\">\n            <span style=\"display: flex; align-items: center; gap: 6px\"><span style=\"width: 10px; height: 10px; background: #2459D6; display: inline-block\"><\/span>Good units<\/span>\n            <span style=\"display: flex; align-items: center; gap: 6px\"><span style=\"width: 10px; height: 10px; background: #D97706; display: inline-block\"><\/span>Scrap<\/span>\n            <span style=\"display: flex; align-items: center; gap: 6px\"><span style=\"width: 14px; height: 0; border-top: 2px dashed #1C1C1A; display: inline-block\"><\/span>Required 160/day<\/span>\n          <\/div>\n        <\/div>\n        <div style=\"position: relative; height: 220px; display: flex; align-items: flex-end; gap: 10px; border-bottom: 1px solid #C4C4BF; padding: 0 4px\">\n          <div aria-hidden=\"true\" style=\"position: absolute; left: 0; right: 0; bottom: 160px; border-top: 2px dashed #1C1C1A\"><\/div>\n          <sc-for list=\"{{days}}\" as=\"d\" hint-placeholder-count=\"10\">\n            <div style=\"flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; height: 100%\">\n              <div style=\"background: #D97706; height: {{d.scrap}}\"><\/div>\n              <div style=\"background: #2459D6; height: {{d.good}}\"><\/div>\n            <\/div>\n          <\/sc-for>\n        <\/div>\n        <div style=\"display: flex; justify-content: space-between; font-size: 11px; color: #6B6B66\"><span>[10 Nov]<\/span><span>Avg last 7 days: 112 good/day · needed 160/day to hit due date<\/span><span>[19 Nov]<\/span><\/div>\n      <\/section>\n\n      <section style=\"flex: 1 1 300px; min-width: 0; background: #fff; border: 1px solid #D4D4D0; border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 12px\">\n        <h2 style=\"margin: 0; font-size: 16px\">What it takes to recover<\/h2>\n        <div style=\"font-size: 13px; color: #3A3A37; line-height: 1.5\">Remaining 1,296 units. At current rate ETA is [29 Nov]. To ship by [24 Nov] (revised):<\/div>\n        <sc-for list=\"{{levers}}\" as=\"l\" hint-placeholder-count=\"4\">\n          <div style=\"display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid #ECECE8; font-size: 13px\">\n            <span>{{l.what}}<\/span><span style=\"font-weight: 600; white-space: nowrap\">{{l.need}}<\/span>\n          <\/div>\n        <\/sc-for>\n        <div style=\"font-size: 11px; color: #6B6B66\">Bottleneck: Machining (CNC-03 down 42 min, 108% loaded)<\/div>\n      <\/section>\n    <\/div>\n\n    <div style=\"display: flex; flex-wrap: wrap; gap: 16px\">\n      <section style=\"flex: 1 1 380px; min-width: 0; background: #fff; border: 1px solid #D4D4D0; border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 10px\">\n        <h2 style=\"margin: 0; font-size: 16px\">Wastage &amp; defects on this order<\/h2>\n        <sc-for list=\"{{defects}}\" as=\"d\" hint-placeholder-count=\"4\">\n          <div style=\"display: flex; flex-direction: column; gap: 4px\">\n            <div style=\"display: flex; justify-content: space-between; font-size: 13px\"><span>{{d.name}}<\/span><span style=\"color: #5E5E5A\">{{d.qty}}<\/span><\/div>\n            <div style=\"height: 8px; background: #ECECE8; border-radius: 4px\"><div style=\"height: 8px; border-radius: 4px; background: #D97706; width: {{d.bar}}\"><\/div><\/div>\n          <\/div>\n        <\/sc-for>\n        <div style=\"font-size: 11px; color: #6B6B66\">Scrap cost so far: ₹[AMOUNT] · Source: SAP QM notifications + PP scrap<\/div>\n      <\/section>\n\n      <section style=\"flex: 1 1 380px; min-width: 0; background: #fff; border: 1px solid #D4D4D0; border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 4px\">\n        <h2 style=\"margin: 0 0 6px; font-size: 16px\">Activity<\/h2>\n        <sc-for list=\"{{feed}}\" as=\"f\" hint-placeholder-count=\"5\">\n          <div style=\"display: flex; gap: 12px; padding: 8px 0; border-top: 1px solid #ECECE8; font-size: 13px\">\n            <span style=\"color: #6B6B66; min-width: 64px; font-size: 12px\">{{f.time}}<\/span>\n            <span style=\"flex: 1\">{{f.text}}<\/span>\n            <span style=\"font-size: 11px; color: #5E5E5A; background: #F0F0EC; border-radius: 4px; padding: 2px 6px; align-self: flex-start\">{{f.src}}<\/span>\n          <\/div>\n        <\/sc-for>\n      <\/section>\n    <\/div>\n    <footer style=\"margin-top: auto; padding-top: 16px; border-top: 1px solid #D4D4D0; font-size: 12px; color: #5E5E5A\">Powered by <strong style=\"color: #1C1C1A\">itTrident<\/strong><\/footer>\n  <\/main>\n<\/div>", Component, document.getElementById('root'));
+</script>
+</body>
+</html>

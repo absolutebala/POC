@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Process board · Production Tower</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F4F4F2}
+a{color:#2459D6}a:hover{color:#1A43A6}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="dc-lite.js"></script>
+<script>
+
+class Component extends DCLogic {
+  renderVals() {
+    var self = this;
+    var navItems = [
+      ['Plant overview','index.html'],['Orders','orders.html'],['Process board','process-board.html'],['Shop floor','shop-floor.html'],
+      ['Quality & wastage','quality.html'],['Capacity & resources','capacity.html'],['Data sources','data-sources.html']
+    ];
+    var nav = navItems.map(function (n) {
+      var on = n[0] === 'Process board';
+      return { label: n[0], href: n[1], style: 'display:flex;align-items:center;min-height:44px;padding:0 12px;border-radius:6px;text-decoration:none;font-size:14px;' + (on ? 'background:#1C1C1A;color:#FFFFFF;font-weight:600' : 'color:#3A3A37') };
+    });
+    var depts = ['Cutting','Machining','Welding','Fabrication','Painting','Quality check','Dispatch'];
+    // Codes: D done, P in progress, R in progress at risk, H on hold, N not started, X not in route
+    var orders = [
+      { id: 'SO-[1042]', client: '[Client A]', product: '[Bracket assy BX-20]', due: '[22 Nov]', qty: 2400, j: ['D','H','P','P','P','P','N'], p: [100,58,49,47,46,46,0] },
+      { id: 'SO-[1038]', client: '[Client B]', product: '[Frame FR-8]', due: '[25 Nov]', qty: 1600, j: ['D','D','R','P','P','P','N'], p: [100,100,64,63,62,62,0] },
+      { id: 'SO-[1051]', client: '[Client C]', product: '[Housing H-3]', due: '[28 Nov]', qty: 900, j: ['R','P','P','X','P','P','N'], p: [58,40,37,0,36,35,0] },
+      { id: 'SO-[1047]', client: '[Client A]', product: '[Panel P-12]', due: '[02 Dec]', qty: 1200, j: ['D','R','P','P','P','P','N'], p: [100,40,32,30,29,28,0] },
+      { id: 'SO-[1055]', client: '[Client D]', product: '[Shaft S-40]', due: '[05 Dec]', qty: 600, j: ['P','P','X','X','X','P','N'], p: [85,30,0,0,0,12,0] },
+      { id: 'SO-[1040]', client: '[Client B]', product: '[Cover C-2]', due: '[26 Nov]', qty: 3000, j: ['D','X','X','D','P','P','N'], p: [100,0,0,100,85,81,0] },
+      { id: 'SO-[1044]', client: '[Client C]', product: '[Base plate BP-1]', due: '[27 Nov]', qty: 1500, j: ['D','D','D','X','D','H','N'], p: [100,100,100,0,100,74,0] },
+      { id: 'SO-[1049]', client: '[Client D]', product: '[Bracket BX-9]', due: '[30 Nov]', qty: 800, j: ['D','D','D','P','P','P','N'], p: [100,100,100,60,56,55,0] },
+      { id: 'SO-[1052]', client: '[Client A]', product: '[Guard G-6]', due: '[04 Dec]', qty: 450, j: ['D','D','P','P','P','P','N'], p: [100,100,45,42,41,40,0] },
+      { id: 'SO-[1036]', client: '[Client B]', product: '[Rail R-30]', due: '[21 Nov]', qty: 2000, j: ['D','D','D','D','D','D','P'], p: [100,100,100,100,100,100,97] }
+    ];
+    var notes = {
+      'SO-[1042]|1': { flag: 'Blocked', text: 'CNC-03 spindle overheat; maintenance replacing bearing, back by 19:00. 260 pcs waiting. Shift C requested to recover.' },
+      'SO-[1038]|2': { flag: 'At risk', text: 'Weld porosity on 26 units, being reworked. New wire batch suspected; switched back to old batch at 17:30.' },
+      'SO-[1051]|0': { flag: 'At risk', text: 'MS plate 6 mm runs out by morning. 1.5 t needed by 10:00 or cutting stops.' },
+      'SO-[1047]|1': { flag: 'At risk', text: 'Queued about 6 h behind SO-[1042] on the CNCs.' },
+      'SO-[1044]|5': { flag: 'Waiting', text: '4 dented units on hold until the client decides whether to accept them as-is.' }
+    };
+    var heads = [
+      { name: 'Cutting', status: 'At risk', note: 'MS plate runs out by morning; need 1.5 t by 10:00.', meta: '17:52 · Commit 420 · Reliability 94%' },
+      { name: 'Machining', status: 'Blocked', note: 'CNC-03 back by 19:00. 1 operator absent. Requesting Shift C.', meta: '18:05 · Commit 300 (380 with Shift C) · Reliability 71%' },
+      { name: 'Welding', status: 'At risk', note: '2 welders absent. Porosity traced to new wire batch.', meta: '17:58 · Commit 280 · Reliability 78%' },
+      { name: 'Fabrication', status: 'On track', note: 'Idle risk tomorrow if Welding stays behind on SO-[1038].', meta: '17:40 · Commit 260 · Reliability 96%' },
+      { name: 'Painting', status: 'Pending', note: 'Shift update not submitted yet.', meta: 'Due 18:30 · Reliability 92%' },
+      { name: 'Quality check', status: 'On track', note: '4 units of SO-[1044] on hold for client decision.', meta: '17:55 · Commit 300 · Reliability 90%' },
+      { name: 'Dispatch', status: 'On track', note: 'SO-[1036] truck leaves 20:00. Invoice pending.', meta: '17:30 · Commit 2 trucks · Reliability 100%' }
+    ];
+    var pill = function (bg, fg) { return 'font-size:12px;font-weight:600;padding:4px 8px;border-radius:999px;white-space:nowrap;background:' + bg + ';color:' + fg; };
+    var hcol = { 'Blocked': ['#FBE9E7','#A12A1C'], 'At risk': ['#FDF0E1','#97470A'], 'Pending': ['#F0F0EC','#3A3A37'], 'On track': ['#E7F2EA','#2F6B45'] };
+    heads.forEach(function (h) { h.badge = pill(hcol[h.status][0], hcol[h.status][1]); });
+
+    var selKey = (this.state && this.state.sel) || 'SO-[1042]|1';
+    var base = 'width:100%;min-height:56px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:3px;padding:6px 8px;border-radius:6px;font:inherit;text-align:left;box-sizing:border-box;';
+    var look = {
+      D: 'background:#E7F2EA;color:#2F6B45;border:1px solid #CFE5D6;cursor:pointer;',
+      P: 'background:#EEF3FD;color:#1A43A6;border:1px solid #C9D7F5;cursor:pointer;',
+      R: 'background:#EEF3FD;color:#1A43A6;border:2px solid #D97706;cursor:pointer;',
+      H: 'background:#FBE9E7;color:#A12A1C;border:2px solid #B42318;cursor:pointer;',
+      N: 'background:#FFFFFF;color:#5E5E5A;border:1px dashed #C4C4BF;cursor:pointer;',
+      X: 'background:transparent;color:#6B6B66;border:1px solid transparent;'
+    };
+    var statusName = { D: 'Done', P: 'In progress', R: 'In progress', H: 'On hold', N: 'Not started', X: 'Not in route' };
+    var rows = orders.map(function (o) {
+      return { id: o.id, client: o.client, due: o.due, cells: o.j.map(function (code, i) {
+        var key = o.id + '|' + i;
+        var n = notes[key];
+        var label = code === 'D' ? 'Done' : code === 'H' ? 'On hold' : code === 'N' ? 'Not started' : code === 'X' ? '—' : o.p[i] + '%';
+        var flag = n ? '! ' + n.flag : '';
+        return {
+          label: label, flag: flag, flagTone: code === 'H' ? '#A12A1C' : '#97470A',
+          showBar: code === 'P' || code === 'R',
+          bar: 'display:block;height:4px;border-radius:2px;background:#2459D6;width:' + o.p[i] + '%',
+          off: code === 'X',
+          aria: o.id + ' ' + depts[i] + ': ' + statusName[code] + (flag ? ', ' + n.flag : ''),
+          pick: function () { self.setState({ sel: key }); },
+          style: base + look[code] + (key === selKey ? 'outline:3px solid #1C1C1A;outline-offset:1px;' : '')
+        };
+      }) };
+    });
+
+    var parts = selKey.split('|');
+    var so = orders.filter(function (o) { return o.id === parts[0]; })[0];
+    var di = +parts[1];
+    var code = so.j[di];
+    var fmt = function (v) { return Math.round(v).toLocaleString('en-IN'); };
+    var prevIdx = -1, nextIdx = -1, k;
+    for (k = di - 1; k >= 0; k--) { if (so.j[k] !== 'X') { prevIdx = k; break; } }
+    for (k = di + 1; k < 7; k++) { if (so.j[k] !== 'X') { nextIdx = k; break; } }
+    var received = prevIdx < 0 ? so.qty : so.qty * so.p[prevIdx] / 100;
+    var done = so.qty * so.p[di] / 100;
+    var handed = nextIdx < 0 ? done : Math.min(done, so.qty * (so.p[nextIdx] + 2) / 100);
+    var n = notes[selKey];
+    var sc = { D: ['#E7F2EA','#2F6B45'], P: ['#EEF3FD','#1A43A6'], R: ['#EEF3FD','#1A43A6'], H: ['#FBE9E7','#A12A1C'], N: ['#F0F0EC','#3A3A37'], X: ['#F0F0EC','#3A3A37'] };
+    var head = heads[di];
+    var sel = {
+      id: so.id, dept: depts[di], product: so.product, client: so.client,
+      status: statusName[code], statusBadge: pill(sc[code][0], sc[code][1]),
+      hasFlag: !!n, flag: n ? n.flag : '', flagBadge: pill('#FDF0E1', '#97470A'),
+      stats: [
+        { label: 'Received' + (prevIdx < 0 ? ' (material issued)' : ' from ' + depts[prevIdx]), value: fmt(received) + ' pcs', src: prevIdx < 0 ? 'SAP MM goods issue' : 'Handoff accepted' },
+        { label: 'Completed here', value: fmt(done) + ' pcs · ' + so.p[di] + '%', src: 'SAP confirmations / IoT counter' },
+        { label: 'Waiting in department', value: fmt(Math.max(received - done, 0)) + ' pcs', src: 'iDataOne' },
+        { label: nextIdx < 0 ? 'Shipped' : 'Handed to ' + depts[nextIdx], value: fmt(handed) + ' pcs', src: nextIdx < 0 ? 'Dispatch confirmation' : 'Handoff sent' }
+      ],
+      note: n ? n.text + ' (from ' + depts[di] + ' shift update)' : 'No challenge reported for this order in ' + depts[di] + '.',
+      noteBg: n ? '#FDF0E1' : '#F4F4F2',
+      head: head.status + ' · ' + head.note + ' ' + head.meta
+    };
+
+    var hb = { Accepted: ['#E7F2EA','#2F6B45'], 'Gap flagged': ['#FBE9E7','#A12A1C'], 'Awaiting acceptance': ['#FDF0E1','#97470A'] };
+    var handoffs = [
+      ['18:20','SO-[1042]','Machining → Welding','120','118','−2','Gap flagged'],
+      ['18:02','SO-[1038]','Welding → Fabrication','80','—','—','Awaiting acceptance'],
+      ['17:45','SO-[1040]','Painting → Quality check','210','210','0','Accepted'],
+      ['17:30','SO-[1036]','Quality check → Dispatch','400','400','0','Accepted'],
+      ['17:10','SO-[1051]','Cutting → Machining','150','150','0','Accepted'],
+      ['16:50','SO-[1044]','Painting → Quality check','300','296','−4','Gap flagged']
+    ].map(function (h) { return { time: h[0], order: h[1], route: h[2], sent: h[3], acc: h[4], gap: h[5], gapTone: h[5].charAt(0) === '−' ? '#A12A1C' : '#5E5E5A', status: h[6], badge: pill(hb[h[6]][0], hb[h[6]][1]) }; });
+
+    var requests = [
+      ['Machining','Manpower','Approve Shift C: 4 operators × 3 nights','SO-[1042], [1047]','~60 h recovered','Plant head','Approve'],
+      ['Welding','Manpower','2 contract welders for 4 days','SO-[1038]','~32 h','HR / Plant head','Approve'],
+      ['Cutting','Material','Expedite MS plate 6 mm, 1.5 t by 10:00','SO-[1051]','Stops 1 line','Purchase','Assign'],
+      ['Welding','Quality','Check wire batch for porosity','SO-[1038]','26 units rework','QC head','Assign'],
+      ['Quality check','Decision','Client OK to use 4 dented units as-is','SO-[1044]','4 units on hold','Sales','Assign']
+    ].map(function (r) { return { dept: r[0], type: r[1], detail: r[2], orders: r[3], impact: r[4], owner: r[5], action: r[6] }; });
+
+    var sw = 'display:inline-block;width:16px;height:12px;border-radius:3px;';
+    return {
+      nav: nav,
+      deptNames: depts,
+      rows: rows,
+      sel: sel,
+      heads: heads,
+      handoffs: handoffs,
+      requests: requests,
+      hcols: ['Time','Order','From → To','Sent','Accepted','Gap','Status'],
+      rcols: ['Department','Type','Challenge / request','Orders','Impact','Owner','Action'],
+      legend: [
+        { label: 'Not started', style: sw + 'background:#fff;border:1px dashed #8A8A85' },
+        { label: 'In progress', style: sw + 'background:#EEF3FD;border:1px solid #2459D6' },
+        { label: 'At risk', style: sw + 'background:#EEF3FD;border:2px solid #D97706' },
+        { label: 'On hold', style: sw + 'background:#FBE9E7;border:2px solid #B42318' },
+        { label: 'Done', style: sw + 'background:#E7F2EA;border:1px solid #2F7D4F' }
+      ]
+    };
+  }
+}
+
+dcMount("<div style=\"box-sizing: border-box; min-height: 1560px; display: flex; flex-wrap: wrap; align-items: stretch; background: #F4F4F2; font-family: Inter, system-ui, sans-serif; color: #1C1C1A\">\n\n  <nav aria-label=\"Main\" style=\"flex: 1 1 220px; box-sizing: border-box; background: #FFFFFF; border-right: 1px solid #D4D4D0; padding: 24px 16px; display: flex; flex-direction: column; gap: 4px\">\n    <div style=\"display: flex; align-items: center; gap: 10px; padding: 0 8px 20px\">\n      <div style=\"width: 32px; height: 32px; border-radius: 6px; background: #E4E4E0; border: 1px dashed #8A8A85; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #5E5E5A\">LOGO<\/div>\n      <div style=\"display: flex; flex-direction: column; gap: 2px\">\n        <div style=\"font-weight: 700; font-size: 15px\">Production Tower<\/div>\n        <div style=\"font-size: 11px; color: #5E5E5A\">Powered by itTrident<\/div>\n      <\/div>\n    <\/div>\n    <sc-for list=\"{{nav}}\" as=\"item\" hint-placeholder-count=\"7\">\n      <a href=\"{{item.href}}\" style=\"{{item.style}}\">{{item.label}}<\/a>\n    <\/sc-for>\n  <\/nav>\n\n  <main style=\"flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 28px 32px; display: flex; flex-direction: column; gap: 20px\">\n\n    <header style=\"display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px\">\n      <div>\n        <div style=\"font-size: 13px; color: #5E5E5A\">Every open order across every department · Shift B<\/div>\n        <h1 style=\"margin: 4px 0 0; font-size: 28px; font-weight: 700\">Process board<\/h1>\n      <\/div>\n      <div style=\"display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end\">\n        <label style=\"display: flex; flex-direction: column; font-size: 11px; color: #5E5E5A; gap: 2px\">Client\n          <select style=\"height: 36px; border: 1px solid #C4C4BF; border-radius: 6px; padding: 0 10px; font: inherit; font-size: 13px; background: #fff\"><option>All clients<\/option><\/select>\n        <\/label>\n        <label style=\"display: flex; flex-direction: column; font-size: 11px; color: #5E5E5A; gap: 2px\">Show\n          <select style=\"height: 36px; border: 1px solid #C4C4BF; border-radius: 6px; padding: 0 10px; font: inherit; font-size: 13px; background: #fff\"><option>All open orders<\/option><option>With challenges only<\/option><option>Due in 7 days<\/option><\/select>\n        <\/label>\n        <button style=\"height: 44px; padding: 0 16px; border-radius: 6px; border: 1px solid #C4C4BF; background: #fff; font: inherit; font-size: 13px\">TV / Andon mode<\/button>\n      <\/div>\n    <\/header>\n\n    <section style=\"background: #fff; border: 1px solid #D4D4D0; border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 12px\">\n      <div style=\"display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px\">\n        <h2 style=\"margin: 0; font-size: 16px\">Orders × departments<\/h2>\n        <div style=\"display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: #3A3A37\">\n          <sc-for list=\"{{legend}}\" as=\"l\" hint-placeholder-count=\"6\">\n            <span style=\"display: flex; align-items: center; gap: 6px\"><span style=\"{{l.style}}\"><\/span>{{l.label}}<\/span>\n          <\/sc-for>\n        <\/div>\n      <\/div>\n      <div style=\"overflow-x: auto\">\n        <table style=\"width: 100%; border-collapse: separate; border-spacing: 6px; font-size: 13px; min-width: 1100px\">\n          <thead>\n            <tr style=\"text-align: left; color: #5E5E5A; font-size: 12px\">\n              <th style=\"padding: 4px 6px; font-weight: 500; width: 190px\">Order<\/th>\n              <sc-for list=\"{{deptNames}}\" as=\"h\" hint-placeholder-count=\"7\">\n                <th style=\"padding: 4px 6px; font-weight: 500\">{{h}}<\/th>\n              <\/sc-for>\n            <\/tr>\n          <\/thead>\n          <tbody>\n            <sc-for list=\"{{rows}}\" as=\"r\" hint-placeholder-count=\"10\">\n              <tr>\n                <td style=\"padding: 4px 6px; vertical-align: middle\">\n                  <div style=\"display: flex; flex-direction: column; gap: 2px\">\n                    <a href=\"order-detail.html\" style=\"font-weight: 600\">{{r.id}}<\/a>\n                    <span style=\"font-size: 12px; color: #5E5E5A\">{{r.client}} · Due {{r.due}}<\/span>\n                  <\/div>\n                <\/td>\n                <sc-for list=\"{{r.cells}}\" as=\"c\" hint-placeholder-count=\"7\">\n                  <td style=\"padding: 0\">\n                    <button onClick=\"{{c.pick}}\" disabled=\"{{c.off}}\" aria-label=\"{{c.aria}}\" style=\"{{c.style}}\">\n                      <span style=\"font-size: 12px; font-weight: 600\">{{c.label}}<\/span>\n                      <sc-if value=\"{{c.showBar}}\" hint-placeholder-val=\"{{ false }}\">\n                        <span style=\"display: block; width: 100%; height: 4px; background: #D6E1F7; border-radius: 2px\"><span style=\"{{c.bar}}\"><\/span><\/span>\n                      <\/sc-if>\n                      <span style=\"font-size: 11px; font-weight: 600; color: {{c.flagTone}}\">{{c.flag}}<\/span>\n                    <\/button>\n                  <\/td>\n                <\/sc-for>\n              <\/tr>\n            <\/sc-for>\n          <\/tbody>\n        <\/table>\n      <\/div>\n      <div style=\"font-size: 11px; color: #6B6B66\">Status: Not started / In progress / Done come from SAP confirmations, IoT counters and handoffs. On hold and challenges come from each department head's shift update when they tag an order. \"—\" = this product does not pass through that department. Click a cell for detail.<\/div>\n    <\/section>\n\n    <div style=\"display: flex; flex-wrap: wrap; gap: 16px\">\n      <section style=\"flex: 2 1 520px; min-width: 0; background: #fff; border: 1px solid #D4D4D0; border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 14px\">\n        <div style=\"display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 8px\">\n          <div>\n            <div style=\"font-size: 12px; color: #5E5E5A\">Selected<\/div>\n            <h2 style=\"margin: 2px 0 0; font-size: 18px\">{{sel.id}} · {{sel.dept}}<\/h2>\n            <div style=\"font-size: 12px; color: #5E5E5A; margin-top: 4px\">{{sel.product}} · {{sel.client}}<\/div>\n          <\/div>\n          <div style=\"display: flex; gap: 6px; flex-wrap: wrap\">\n            <span style=\"{{sel.statusBadge}}\">{{sel.status}}<\/span>\n            <sc-if value=\"{{sel.hasFlag}}\" hint-placeholder-val=\"{{ true }}\"><span style=\"{{sel.flagBadge}}\">{{sel.flag}}<\/span><\/sc-if>\n          <\/div>\n        <\/div>\n        <div style=\"display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px\">\n          <sc-for list=\"{{sel.stats}}\" as=\"s\" hint-placeholder-count=\"4\">\n            <div style=\"background: #F4F4F2; border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 4px\">\n              <span style=\"font-size: 12px; color: #5E5E5A\">{{s.label}}<\/span>\n              <span style=\"font-size: 18px; font-weight: 700\">{{s.value}}<\/span>\n              <span style=\"font-size: 11px; color: #6B6B66\">{{s.src}}<\/span>\n            <\/div>\n          <\/sc-for>\n        <\/div>\n        <div style=\"display: flex; flex-direction: column; gap: 6px\">\n          <h3 style=\"margin: 0; font-size: 14px\">Challenge in this department<\/h3>\n          <div style=\"font-size: 13px; color: #3A3A37; line-height: 1.5; background: {{sel.noteBg}}; border-radius: 6px; padding: 10px\">{{sel.note}}<\/div>\n        <\/div>\n        <div style=\"display: flex; flex-direction: column; gap: 6px\">\n          <h3 style=\"margin: 0; font-size: 14px\">Department shift update<\/h3>\n          <div style=\"font-size: 13px; color: #3A3A37; line-height: 1.5\">{{sel.head}}<\/div>\n        <\/div>\n        <div style=\"display: flex; gap: 8px; flex-wrap: wrap\">\n          <a href=\"order-detail.html\" style=\"display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 6px; background: #2459D6; color: #fff; font-size: 13px; font-weight: 600; text-decoration: none\">Open order<\/a>\n          <button style=\"min-height: 44px; padding: 0 16px; border-radius: 6px; border: 1px solid #C4C4BF; background: #fff; font: inherit; font-size: 13px\">Escalate to plant head<\/button>\n        <\/div>\n      <\/section>\n\n      <section style=\"flex: 1 1 300px; min-width: 0; background: #fff; border: 1px solid #D4D4D0; border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 10px\">\n        <div style=\"display: flex; justify-content: space-between; align-items: center\">\n          <h2 style=\"margin: 0; font-size: 16px\">Department shift updates<\/h2>\n          <span style=\"font-size: 12px; color: #5E5E5A\">6 of 7 in<\/span>\n        <\/div>\n        <sc-for list=\"{{heads}}\" as=\"h\" hint-placeholder-count=\"7\">\n          <div style=\"display: flex; flex-direction: column; gap: 4px; padding: 10px 0; border-top: 1px solid #ECECE8\">\n            <div style=\"display: flex; justify-content: space-between; align-items: center; gap: 8px\">\n              <span style=\"font-size: 13px; font-weight: 600\">{{h.name}}<\/span>\n              <span style=\"{{h.badge}}\">{{h.status}}<\/span>\n            <\/div>\n            <span style=\"font-size: 12px; color: #3A3A37; line-height: 1.4\">{{h.note}}<\/span>\n            <span style=\"font-size: 11px; color: #6B6B66\">{{h.meta}}<\/span>\n          <\/div>\n        <\/sc-for>\n        <div style=\"font-size: 11px; color: #6B6B66\">One update per department per shift, from the department head app. Commit = units promised for next shift; reliability = last 5 shifts.<\/div>\n      <\/section>\n    <\/div>\n\n    <section style=\"background: #fff; border: 1px solid #D4D4D0; border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 12px\">\n      <div style=\"display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px\">\n        <h2 style=\"margin: 0; font-size: 16px\">Handoffs between departments<\/h2>\n        <span style=\"font-size: 12px; color: #5E5E5A\">Sending department records qty sent · receiving department accepts · gaps flagged automatically<\/span>\n      <\/div>\n      <div style=\"overflow-x: auto\">\n        <table style=\"width: 100%; border-collapse: collapse; font-size: 13px; min-width: 900px\">\n          <thead>\n            <tr style=\"text-align: left; color: #5E5E5A; font-size: 12px\">\n              <sc-for list=\"{{hcols}}\" as=\"h\" hint-placeholder-count=\"7\">\n                <th style=\"padding: 8px; border-bottom: 1px solid #D4D4D0; font-weight: 500; white-space: nowrap\">{{h}}<\/th>\n              <\/sc-for>\n            <\/tr>\n          <\/thead>\n          <tbody>\n            <sc-for list=\"{{handoffs}}\" as=\"x\" hint-placeholder-count=\"6\">\n              <tr>\n                <td style=\"padding: 10px 8px; border-bottom: 1px solid #ECECE8; white-space: nowrap\">{{x.time}}<\/td>\n                <td style=\"padding: 10px 8px; border-bottom: 1px solid #ECECE8\"><a href=\"order-detail.html\">{{x.order}}<\/a><\/td>\n                <td style=\"padding: 10px 8px; border-bottom: 1px solid #ECECE8; white-space: nowrap\">{{x.route}}<\/td>\n                <td style=\"padding: 10px 8px; border-bottom: 1px solid #ECECE8\">{{x.sent}}<\/td>\n                <td style=\"padding: 10px 8px; border-bottom: 1px solid #ECECE8\">{{x.acc}}<\/td>\n                <td style=\"padding: 10px 8px; border-bottom: 1px solid #ECECE8; font-weight: 600; color: {{x.gapTone}}\">{{x.gap}}<\/td>\n                <td style=\"padding: 10px 8px; border-bottom: 1px solid #ECECE8\"><span style=\"{{x.badge}}\">{{x.status}}<\/span><\/td>\n              <\/tr>\n            <\/sc-for>\n          <\/tbody>\n        <\/table>\n      <\/div>\n    <\/section>\n\n    <section style=\"background: #fff; border: 1px solid #D4D4D0; border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 12px\">\n      <div style=\"display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px\">\n        <h2 style=\"margin: 0; font-size: 16px\">Challenges &amp; requests to act on<\/h2>\n        <span style=\"font-size: 12px; color: #5E5E5A\">Raised in department shift updates · approvals go to the plant head<\/span>\n      <\/div>\n      <div style=\"overflow-x: auto\">\n        <table style=\"width: 100%; border-collapse: collapse; font-size: 13px; min-width: 900px\">\n          <thead>\n            <tr style=\"text-align: left; color: #5E5E5A; font-size: 12px\">\n              <sc-for list=\"{{rcols}}\" as=\"h\" hint-placeholder-count=\"7\">\n                <th style=\"padding: 8px; border-bottom: 1px solid #D4D4D0; font-weight: 500; white-space: nowrap\">{{h}}<\/th>\n              <\/sc-for>\n            <\/tr>\n          <\/thead>\n          <tbody>\n            <sc-for list=\"{{requests}}\" as=\"q\" hint-placeholder-count=\"5\">\n              <tr>\n                <td style=\"padding: 10px 8px; border-bottom: 1px solid #ECECE8\">{{q.dept}}<\/td>\n                <td style=\"padding: 10px 8px; border-bottom: 1px solid #ECECE8\">{{q.type}}<\/td>\n                <td style=\"padding: 10px 8px; border-bottom: 1px solid #ECECE8\">{{q.detail}}<\/td>\n                <td style=\"padding: 10px 8px; border-bottom: 1px solid #ECECE8; white-space: nowrap\">{{q.orders}}<\/td>\n                <td style=\"padding: 10px 8px; border-bottom: 1px solid #ECECE8; white-space: nowrap\">{{q.impact}}<\/td>\n                <td style=\"padding: 10px 8px; border-bottom: 1px solid #ECECE8\">{{q.owner}}<\/td>\n                <td style=\"padding: 10px 8px; border-bottom: 1px solid #ECECE8\"><button style=\"min-height: 36px; padding: 0 12px; border-radius: 6px; border: 1px solid #C4C4BF; background: #fff; font: inherit; font-size: 12px; white-space: nowrap\">{{q.action}}<\/button><\/td>\n              <\/tr>\n            <\/sc-for>\n          <\/tbody>\n        <\/table>\n      <\/div>\n    <\/section>\n\n    <footer style=\"margin-top: auto; padding-top: 16px; border-top: 1px solid #D4D4D0; font-size: 12px; color: #5E5E5A\">Powered by <strong style=\"color: #1C1C1A\">itTrident<\/strong><\/footer>\n  <\/main>\n<\/div>", Component, document.getElementById('root'));
+</script>
+</body>
+</html>

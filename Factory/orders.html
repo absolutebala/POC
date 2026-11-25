@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Orders tracker · Production Tower</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F4F4F2}
+a{color:#2459D6}a:hover{color:#1A43A6}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="dc-lite.js"></script>
+<script>
+
+class Component extends DCLogic {
+  renderVals() {
+    var self = this;
+    var navItems = [
+      ['Plant overview','index.html'],['Orders','orders.html'],['Process board','process-board.html'],['Shop floor','shop-floor.html'],
+      ['Quality & wastage','quality.html'],['Capacity & resources','capacity.html'],['Data sources','data-sources.html']
+    ];
+    var nav = navItems.map(function (n) {
+      var on = n[0] === 'Orders';
+      return { label: n[0], href: n[1], style: 'display:flex;align-items:center;min-height:44px;padding:0 12px;border-radius:6px;text-decoration:none;font-size:14px;' + (on ? 'background:#1C1C1A;color:#FFFFFF;font-weight:600' : 'color:#3A3A37') };
+    });
+    var badge = function (s) {
+      var c = s === 'Behind' ? ['#FBE9E7','#A12A1C'] : s === 'At risk' ? ['#FDF0E1','#97470A'] : ['#E7F2EA','#2F6B45'];
+      return 'font-size:12px;font-weight:600;padding:4px 8px;border-radius:999px;white-space:nowrap;background:' + c[0] + ';color:' + c[1];
+    };
+    var data = [
+      ['SO-[1042]','[Client A]','[Bracket assy BX-20]','2,400','46%','Machining','1,120 u','[22 Nov]','[29 Nov]','+56 h','Behind'],
+      ['SO-[1038]','[Client B]','[Frame FR-8]','1,600','62%','Welding','640 u','[25 Nov]','[27 Nov]','+32 h','Behind'],
+      ['SO-[1051]','[Client C]','[Housing H-3]','900','35%','Cutting','380 u','[28 Nov]','[30 Nov]','+24 h','At risk'],
+      ['SO-[1047]','[Client A]','[Panel P-12]','1,200','28%','Machining','210 u','[02 Dec]','[03 Dec]','+14 h','At risk'],
+      ['SO-[1055]','[Client D]','[Shaft S-40]','600','12%','Cutting','90 u','[05 Dec]','[05 Dec]','+6 h','At risk'],
+      ['SO-[1040]','[Client B]','[Cover C-2]','3,000','81%','Painting','—','[26 Nov]','[25 Nov]','—','On track'],
+      ['SO-[1044]','[Client C]','[Base plate BP-1]','1,500','74%','Quality check','—','[27 Nov]','[26 Nov]','—','On track'],
+      ['SO-[1049]','[Client D]','[Bracket BX-9]','800','55%','Fabrication','—','[30 Nov]','[29 Nov]','—','On track'],
+      ['SO-[1052]','[Client A]','[Guard G-6]','450','40%','Welding','—','[04 Dec]','[03 Dec]','—','On track'],
+      ['SO-[1036]','[Client B]','[Rail R-30]','2,000','97%','Dispatch','—','[21 Nov]','[21 Nov]','—','On track']
+    ];
+    var journeys = {
+      'SO-[1042]': ['DHPPPPN','Machining · on hold (machine down)'],
+      'SO-[1038]': ['DDRPPPN','Welding · at risk (porosity rework)'],
+      'SO-[1051]': ['RPPXPPN','Cutting · at risk (material short)'],
+      'SO-[1047]': ['DRPPPPN','Machining · at risk (queued)'],
+      'SO-[1055]': ['PPXXXPN','Cutting · in progress'],
+      'SO-[1040]': ['DXXDPPN','Painting · in progress'],
+      'SO-[1044]': ['DDDXDHN','Quality check · on hold (client decision)'],
+      'SO-[1049]': ['DDDPPPN','Fabrication · in progress'],
+      'SO-[1052]': ['DDPPPPN','Welding · in progress'],
+      'SO-[1036]': ['DDDDDDP','Dispatch · truck 20:00']
+    };
+    var dn = ['Cutting','Machining','Welding','Fabrication','Painting','Quality check','Dispatch'];
+    var segLook = { D: 'background:#2F7D4F;', P: 'background:#2459D6;', R: 'background:#D97706;', H: 'background:#B42318;', N: 'background:#D4D4D0;', X: 'background:transparent;border:1px dashed #C4C4BF;box-sizing:border-box;' };
+    var segName = { D: 'done', P: 'in progress', R: 'at risk', H: 'on hold', N: 'not started', X: 'not in route' };
+    var tab = this.state && this.state.tab || 'All';
+    var rows = data.filter(function (r) { return tab === 'All' || r[10] === tab; }).map(function (r) {
+      var jr = journeys[r[0]];
+      var journey = jr[0].split('').map(function (c, i) { return { title: dn[i] + ': ' + segName[c], style: 'display:inline-block;width:18px;height:10px;border-radius:2px;' + segLook[c] }; });
+      var tone = jr[1].indexOf('on hold') > -1 ? '#A12A1C' : jr[1].indexOf('at risk') > -1 ? '#97470A' : '#3A3A37';
+      return { id: r[0], client: r[1], product: r[2], qty: r[3], pct: r[4], stage: jr[1], stageTone: tone, journey: journey, behind: r[6], due: r[7], eta: r[8], hrs: r[9], status: r[10], badge: badge(r[10]) };
+    });
+    var tabs = [['All','24'],['Behind','6'],['At risk','3'],['On track','15']].map(function (t) {
+      var on = t[0] === tab;
+      return { label: t[0] + ' (' + t[1] + ')', pick: function () { self.setState({ tab: t[0] }); },
+        style: 'min-height:44px;padding:0 14px;border-radius:6px;font:inherit;font-size:13px;cursor:pointer;' + (on ? 'background:#1C1C1A;color:#fff;border:1px solid #1C1C1A;font-weight:600' : 'background:#fff;color:#3A3A37;border:1px solid #C4C4BF') };
+    });
+    return {
+      nav: nav,
+      tabs: tabs,
+      rows: rows,
+      cols: ['Order','Client','Product','Qty','Complete','Department journey','Behind by','Due','Forecast ETA','Extra hrs','Status'],
+      clients: [
+        { name: '[Client A]', orders: 8, pct: '52%', late: '2 behind' },
+        { name: '[Client B]', orders: 6, pct: '71%', late: '1 behind' },
+        { name: '[Client C]', orders: 5, pct: '58%', late: '1 at risk' },
+        { name: '[Client D]', orders: 5, pct: '39%', late: '1 at risk' }
+      ]
+    };
+  }
+}
+
+dcMount("<div style=\"box-sizing: border-box; min-height: 1060px; display: flex; flex-wrap: wrap; align-items: stretch; background: #F4F4F2; font-family: Inter, system-ui, sans-serif; color: #1C1C1A\">\n\n  <nav aria-label=\"Main\" style=\"flex: 1 1 220px; box-sizing: border-box; background: #FFFFFF; border-right: 1px solid #D4D4D0; padding: 24px 16px; display: flex; flex-direction: column; gap: 4px\">\n    <div style=\"display: flex; align-items: center; gap: 10px; padding: 0 8px 20px\">\n      <div style=\"width: 32px; height: 32px; border-radius: 6px; background: #E4E4E0; border: 1px dashed #8A8A85; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #5E5E5A\">LOGO<\/div>\n      <div style=\"display: flex; flex-direction: column; gap: 2px\">\n        <div style=\"font-weight: 700; font-size: 15px\">Production Tower<\/div>\n        <div style=\"font-size: 11px; color: #5E5E5A\">Powered by itTrident<\/div>\n      <\/div>\n    <\/div>\n    <sc-for list=\"{{nav}}\" as=\"item\" hint-placeholder-count=\"6\">\n      <a href=\"{{item.href}}\" style=\"{{item.style}}\">{{item.label}}<\/a>\n    <\/sc-for>\n  <\/nav>\n\n  <main style=\"flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 28px 32px; display: flex; flex-direction: column; gap: 20px\">\n\n    <header style=\"display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px\">\n      <div>\n        <div style=\"font-size: 13px; color: #5E5E5A\">24 open sales / production orders<\/div>\n        <h1 style=\"margin: 4px 0 0; font-size: 28px; font-weight: 700\">Orders tracker<\/h1>\n      <\/div>\n      <div style=\"display: flex; gap: 8px; flex-wrap: wrap\">\n        <button style=\"height: 44px; padding: 0 16px; border-radius: 6px; border: 1px solid #C4C4BF; background: #fff; font: inherit; font-size: 13px\">Export to Excel<\/button>\n        <button style=\"height: 44px; padding: 0 16px; border-radius: 6px; border: 0; background: #2459D6; color: #fff; font: inherit; font-size: 13px; font-weight: 600\">Share client update<\/button>\n      <\/div>\n    <\/header>\n\n    <section aria-label=\"Orders by client\" style=\"display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px\">\n      <sc-for list=\"{{clients}}\" as=\"c\" hint-placeholder-count=\"4\">\n        <div style=\"background: #fff; border: 1px solid #D4D4D0; border-radius: 8px; padding: 14px; display: flex; flex-direction: column; gap: 6px\">\n          <div style=\"display: flex; justify-content: space-between; font-size: 14px; font-weight: 600\"><span>{{c.name}}<\/span><span style=\"color: #5E5E5A; font-weight: 400; font-size: 12px\">{{c.orders}} orders<\/span><\/div>\n          <div style=\"height: 6px; background: #ECECE8; border-radius: 3px\"><div style=\"height: 6px; border-radius: 3px; background: #2459D6; width: {{c.pct}}\"><\/div><\/div>\n          <div style=\"font-size: 12px; color: #5E5E5A\">{{c.pct}} delivered · {{c.late}}<\/div>\n        <\/div>\n      <\/sc-for>\n    <\/section>\n\n    <section style=\"background: #fff; border: 1px solid #D4D4D0; border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 14px\">\n      <div style=\"display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; justify-content: space-between\">\n        <div role=\"tablist\" aria-label=\"Status filter\" style=\"display: flex; flex-wrap: wrap; gap: 6px\">\n          <sc-for list=\"{{tabs}}\" as=\"t\" hint-placeholder-count=\"5\">\n            <button role=\"tab\" onClick=\"{{t.pick}}\" style=\"{{t.style}}\">{{t.label}}<\/button>\n          <\/sc-for>\n        <\/div>\n        <div style=\"display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end\">\n          <label style=\"display: flex; flex-direction: column; font-size: 11px; color: #5E5E5A; gap: 2px\">Search\n            <input type=\"search\" placeholder=\"Order, client, material…\" style=\"height: 36px; width: 220px; border: 1px solid #C4C4BF; border-radius: 6px; padding: 0 10px; font: inherit; font-size: 13px\">\n          <\/label>\n          <label style=\"display: flex; flex-direction: column; font-size: 11px; color: #5E5E5A; gap: 2px\">Client\n            <select style=\"height: 36px; border: 1px solid #C4C4BF; border-radius: 6px; padding: 0 10px; font: inherit; font-size: 13px; background: #fff\"><option>All<\/option><\/select>\n          <\/label>\n          <label style=\"display: flex; flex-direction: column; font-size: 11px; color: #5E5E5A; gap: 2px\">Department\n            <select style=\"height: 36px; border: 1px solid #C4C4BF; border-radius: 6px; padding: 0 10px; font: inherit; font-size: 13px; background: #fff\"><option>All<\/option><\/select>\n          <\/label>\n          <label style=\"display: flex; flex-direction: column; font-size: 11px; color: #5E5E5A; gap: 2px\">Due\n            <select style=\"height: 36px; border: 1px solid #C4C4BF; border-radius: 6px; padding: 0 10px; font: inherit; font-size: 13px; background: #fff\"><option>Next 30 days<\/option><\/select>\n          <\/label>\n        <\/div>\n      <\/div>\n\n      <div style=\"overflow-x: auto\">\n        <table style=\"width: 100%; border-collapse: collapse; font-size: 13px; min-width: 1080px\">\n          <thead>\n            <tr style=\"text-align: left; color: #5E5E5A; font-size: 12px\">\n              <sc-for list=\"{{cols}}\" as=\"h\" hint-placeholder-count=\"11\">\n                <th style=\"padding: 8px; border-bottom: 1px solid #D4D4D0; font-weight: 500; white-space: nowrap\">{{h}}<\/th>\n              <\/sc-for>\n            <\/tr>\n          <\/thead>\n          <tbody>\n            <sc-for list=\"{{rows}}\" as=\"o\" hint-placeholder-count=\"10\">\n              <tr>\n                <td style=\"padding: 12px 8px; border-bottom: 1px solid #ECECE8; white-space: nowrap\"><a href=\"order-detail.html\">{{o.id}}<\/a><\/td>\n                <td style=\"padding: 12px 8px; border-bottom: 1px solid #ECECE8\">{{o.client}}<\/td>\n                <td style=\"padding: 12px 8px; border-bottom: 1px solid #ECECE8\">{{o.product}}<\/td>\n                <td style=\"padding: 12px 8px; border-bottom: 1px solid #ECECE8; white-space: nowrap\">{{o.qty}}<\/td>\n                <td style=\"padding: 12px 8px; border-bottom: 1px solid #ECECE8\">\n                  <div style=\"display: flex; align-items: center; gap: 8px\">\n                    <div style=\"width: 70px; height: 6px; background: #ECECE8; border-radius: 3px\"><div style=\"height: 6px; border-radius: 3px; background: #2459D6; width: {{o.pct}}\"><\/div><\/div>\n                    <span>{{o.pct}}<\/span>\n                  <\/div>\n                <\/td>\n                <td style=\"padding: 12px 8px; border-bottom: 1px solid #ECECE8\">\n                  <a href=\"process-board.html\" style=\"display: flex; flex-direction: column; gap: 4px; text-decoration: none; color: #1C1C1A\">\n                    <span style=\"display: flex; gap: 3px\">\n                      <sc-for list=\"{{o.journey}}\" as=\"s\" hint-placeholder-count=\"7\">\n                        <span title=\"{{s.title}}\" style=\"{{s.style}}\"><\/span>\n                      <\/sc-for>\n                    <\/span>\n                    <span style=\"font-size: 12px; color: {{o.stageTone}}\">{{o.stage}}<\/span>\n                  <\/a>\n                <\/td>\n                <td style=\"padding: 12px 8px; border-bottom: 1px solid #ECECE8; white-space: nowrap\">{{o.behind}}<\/td>\n                <td style=\"padding: 12px 8px; border-bottom: 1px solid #ECECE8; white-space: nowrap\">{{o.due}}<\/td>\n                <td style=\"padding: 12px 8px; border-bottom: 1px solid #ECECE8; white-space: nowrap\">{{o.eta}}<\/td>\n                <td style=\"padding: 12px 8px; border-bottom: 1px solid #ECECE8\">{{o.hrs}}<\/td>\n                <td style=\"padding: 12px 8px; border-bottom: 1px solid #ECECE8\"><span style=\"{{o.badge}}\">{{o.status}}<\/span><\/td>\n              <\/tr>\n            <\/sc-for>\n          <\/tbody>\n        <\/table>\n      <\/div>\n      <div style=\"display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; font-size: 12px; color: #5E5E5A\">\n        <span>Journey = Cutting → Machining → Welding → Fabrication → Painting → Quality check → Dispatch. Green done · blue in progress · amber at risk · red on hold · grey not started · gap = not in this product's route. Behind by = planned qty to date − confirmed qty. ETA = remaining qty ÷ run rate, adjusted by department commitments.<\/span>\n        <span>Showing 10 of 24 · <a href=\"#\">Next page<\/a><\/span>\n      <\/div>\n    <\/section>\n    <footer style=\"margin-top: auto; padding-top: 16px; border-top: 1px solid #D4D4D0; font-size: 12px; color: #5E5E5A\">Powered by <strong style=\"color: #1C1C1A\">itTrident<\/strong><\/footer>\n  <\/main>\n<\/div>", Component, document.getElementById('root'));
+</script>
+</body>
+</html>

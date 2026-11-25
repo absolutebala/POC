@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Data sources · Production Tower</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F4F4F2}
+a{color:#2459D6}a:hover{color:#1A43A6}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="dc-lite.js"></script>
+<script>
+
+class Component extends DCLogic {
+  renderVals() {
+    var navItems = [
+      ['Plant overview','index.html'],['Orders','orders.html'],['Process board','process-board.html'],['Shop floor','shop-floor.html'],
+      ['Quality & wastage','quality.html'],['Capacity & resources','capacity.html'],['Data sources','data-sources.html']
+    ];
+    var nav = navItems.map(function (n) {
+      var on = n[0] === 'Data sources';
+      return { label: n[0], href: n[1], style: 'display:flex;align-items:center;min-height:44px;padding:0 12px;border-radius:6px;text-decoration:none;font-size:14px;' + (on ? 'background:#1C1C1A;color:#FFFFFF;font-weight:600' : 'color:#3A3A37') };
+    });
+    var badge = function (s) {
+      var c = s === 'Connected' ? ['#E7F2EA','#2F6B45'] : s === 'Partial' ? ['#FDF0E1','#97470A'] : ['#F0F0EC','#3A3A37'];
+      return 'font-size:12px;font-weight:600;padding:4px 8px;border-radius:999px;white-space:nowrap;background:' + c[0] + ';color:' + c[1];
+    };
+    var sources = [
+      ['SAP SD','Connected','Sales orders, clients, due dates','OData service · read only','Last sync 4 min ago · every 15 min'],
+      ['SAP PP','Connected','Production orders, routings, confirmations, scrap','OData / RFC · read only','Last sync 4 min ago · every 5 min'],
+      ['SAP MM','Connected','Stock, BOM requirements, purchase orders','OData · read only','Last sync 12 min ago · every 15 min'],
+      ['SAP QM','Partial','Quality notifications, defect codes','Defect codes not mapped for Painting','Last sync 4 min ago'],
+      ['IoT gateway','Partial','Machine state, counts, cycle time, sensors','MQTT · 18 of 24 machines connected','Live · 2 s latency'],
+      ['Department head app','Connected','Shift update per department (status, challenges tagged to orders, requests, next-shift commitment) + handoffs sent / accepted between departments','Tablet / mobile app · once per shift + handoffs as they happen','6 of 7 departments submitted this shift'],
+      ['HR / attendance','Not connected','Shift roster, attendance, skills','CSV upload or API','—']
+    ].map(function (s) { return { name: s[0], state: s[1], feeds: s[2], how: s[3], sync: s[4], badge: badge(s[1]) }; });
+    return {
+      nav: nav,
+      sources: sources,
+      rules: [
+        { label: 'Order "at risk" when ETA is within (days of due)', val: '2' },
+        { label: 'Scrap alert above (%)', val: '2.5' },
+        { label: 'Machine down alert after (minutes)', val: '10' },
+        { label: 'Department overload above (% load)', val: '100' }
+      ]
+    };
+  }
+}
+
+dcMount("<div style=\"box-sizing: border-box; min-height: 900px; display: flex; flex-wrap: wrap; align-items: stretch; background: #F4F4F2; font-family: Inter, system-ui, sans-serif; color: #1C1C1A\">\n\n  <nav aria-label=\"Main\" style=\"flex: 1 1 220px; box-sizing: border-box; background: #FFFFFF; border-right: 1px solid #D4D4D0; padding: 24px 16px; display: flex; flex-direction: column; gap: 4px\">\n    <div style=\"display: flex; align-items: center; gap: 10px; padding: 0 8px 20px\">\n      <div style=\"width: 32px; height: 32px; border-radius: 6px; background: #E4E4E0; border: 1px dashed #8A8A85; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #5E5E5A\">LOGO<\/div>\n      <div style=\"display: flex; flex-direction: column; gap: 2px\">\n        <div style=\"font-weight: 700; font-size: 15px\">Production Tower<\/div>\n        <div style=\"font-size: 11px; color: #5E5E5A\">Powered by itTrident<\/div>\n      <\/div>\n    <\/div>\n    <sc-for list=\"{{nav}}\" as=\"item\" hint-placeholder-count=\"6\">\n      <a href=\"{{item.href}}\" style=\"{{item.style}}\">{{item.label}}<\/a>\n    <\/sc-for>\n  <\/nav>\n\n  <main style=\"flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 28px 32px; display: flex; flex-direction: column; gap: 20px\">\n    <header>\n      <div style=\"font-size: 13px; color: #5E5E5A\">Admin<\/div>\n      <h1 style=\"margin: 4px 0 0; font-size: 28px; font-weight: 700\">Data sources<\/h1>\n    <\/header>\n\n    <section aria-label=\"Connections\" style=\"display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px\">\n      <sc-for list=\"{{sources}}\" as=\"s\" hint-placeholder-count=\"6\">\n        <div style=\"background: #fff; border: 1px solid #D4D4D0; border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 8px\">\n          <div style=\"display: flex; justify-content: space-between; align-items: center; gap: 8px\">\n            <h2 style=\"margin: 0; font-size: 15px\">{{s.name}}<\/h2>\n            <span style=\"{{s.badge}}\">{{s.state}}<\/span>\n          <\/div>\n          <div style=\"font-size: 13px; color: #3A3A37; line-height: 1.5\">{{s.feeds}}<\/div>\n          <div style=\"font-size: 12px; color: #5E5E5A\">{{s.how}}<\/div>\n          <div style=\"font-size: 12px; color: #5E5E5A; border-top: 1px dashed #D4D4D0; padding-top: 8px\">{{s.sync}}<\/div>\n        <\/div>\n      <\/sc-for>\n    <\/section>\n\n    <section style=\"background: #fff; border: 1px solid #D4D4D0; border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 12px\">\n      <h2 style=\"margin: 0; font-size: 16px\">Data flow<\/h2>\n      <div style=\"display: flex; flex-wrap: wrap; align-items: stretch; gap: 12px\">\n        <div style=\"flex: 1 1 200px; border: 1px solid #C4C4BF; border-radius: 6px; padding: 14px; display: flex; flex-direction: column; gap: 4px\">\n          <div style=\"font-size: 14px; font-weight: 600\">SAP ECC / S/4HANA<\/div>\n          <div style=\"font-size: 12px; color: #5E5E5A\">SD orders · PP orders &amp; confirmations · MM stock · QM notifications · PM maintenance<\/div>\n        <\/div>\n        <div style=\"flex: 1 1 200px; border: 1px solid #C4C4BF; border-radius: 6px; padding: 14px; display: flex; flex-direction: column; gap: 4px\">\n          <div style=\"font-size: 14px; font-weight: 600\">IoT gateway<\/div>\n          <div style=\"font-size: 12px; color: #5E5E5A\">PLC / sensors via OPC UA or MQTT · counts, states, cycle time, temperature<\/div>\n        <\/div>\n        <div style=\"flex: 1 1 200px; border: 1px solid #C4C4BF; border-radius: 6px; padding: 14px; display: flex; flex-direction: column; gap: 4px\">\n          <div style=\"font-size: 14px; font-weight: 600\">Department head app<\/div>\n          <div style=\"font-size: 12px; color: #5E5E5A\">Shift updates, challenges, requests, commitments, handoffs (sent / accepted)<\/div>\n        <\/div>\n        <div style=\"flex: 0 0 auto; display: flex; align-items: center; font-size: 20px; color: #5E5E5A\" aria-hidden=\"true\">→<\/div>\n        <div style=\"flex: 1 1 200px; border: 2px solid #2459D6; border-radius: 6px; padding: 14px; display: flex; flex-direction: column; gap: 4px\">\n          <div style=\"font-size: 14px; font-weight: 600\">Integration &amp; data layer<\/div>\n          <div style=\"font-size: 12px; color: #5E5E5A\">OData / RFC extract every 5–15 min · IoT stream · KPI engine (behind, ETA, OEE, extra hours) · process status per order × department<\/div>\n        <\/div>\n        <div style=\"flex: 0 0 auto; display: flex; align-items: center; font-size: 20px; color: #5E5E5A\" aria-hidden=\"true\">→<\/div>\n        <div style=\"flex: 1 1 200px; border: 1px solid #C4C4BF; border-radius: 6px; padding: 14px; display: flex; flex-direction: column; gap: 4px\">\n          <div style=\"font-size: 14px; font-weight: 600\">This app<\/div>\n          <div style=\"font-size: 12px; color: #5E5E5A\">Web dashboard · shop-floor TV · supervisor tablet · alerts (email / WhatsApp)<\/div>\n        <\/div>\n      <\/div>\n    <\/section>\n\n    <section style=\"background: #fff; border: 1px solid #D4D4D0; border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 12px\">\n      <h2 style=\"margin: 0; font-size: 16px\">Thresholds &amp; alerts<\/h2>\n      <div style=\"display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px\">\n        <sc-for list=\"{{rules}}\" as=\"r\" hint-placeholder-count=\"4\">\n          <label style=\"display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #5E5E5A\">{{r.label}}\n            <input type=\"text\" value=\"{{r.val}}\" style=\"height: 40px; border: 1px solid #C4C4BF; border-radius: 6px; padding: 0 10px; font: inherit; font-size: 13px; color: #1C1C1A\">\n          <\/label>\n        <\/sc-for>\n      <\/div>\n    <\/section>\n    <footer style=\"margin-top: auto; padding-top: 16px; border-top: 1px solid #D4D4D0; font-size: 12px; color: #5E5E5A\">Powered by <strong style=\"color: #1C1C1A\">itTrident<\/strong><\/footer>\n  <\/main>\n<\/div>", Component, document.getElementById('root'));
+</script>
+</body>
+</html>
